@@ -1,6 +1,4 @@
-# USER_RULES = "/etc/ufw/user.rules"
-
-USER_RULES = "deneme"
+USER_RULES = "/etc/ufw/user.rules"
 
 # List updated rules
 def list_rules():
