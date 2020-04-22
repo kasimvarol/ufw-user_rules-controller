@@ -8,6 +8,7 @@ def get_rule_index():
 	with open(USER_RULES, "r") as in_file:
 		data = in_file.readlines()
 	rule_list=[]
+	rule_list2=[]
 	k = 0
 	for i in range(len(data)):
 		if "tuple" in data[i]:
@@ -15,10 +16,11 @@ def get_rule_index():
 			print('{:^7}|{:^10}|{:^10}|{:^20}|{:>10}'.format(k+1,rule[2], rule[1], rule[5], rule[0]))
 			k+=1
 			rule_list.append(i)
+			rule_list2.append(data[i][14:])
 
 
 	print("\n1. Port Allow\n2. IP Permissions\n3. IP-Port Permissions\n4. Delete Rule\n5. Edit Rule\n0. Exit")
-	return rule_list
+	return rule_list, rule_list2
 
 
 ### Check the value with regex (22, 7100, 7100:7200) NEED TO BE REVISED
@@ -33,7 +35,7 @@ def get_port():
 ### Check the value with regex (10.10.10.0/24 or 10.10.10.10) NEED TO BE REVISED
 def get_ip():
 	ip = raw_input("Network address: ")
-	ch=raw_input("Which action(allow, deny, reject): ")
+	action=raw_input("Which action(allow, deny, reject): ")
 	return ip,action
 
 ### Get selected index
@@ -52,7 +54,7 @@ print("*"*55 + "\n")
 
 # Add rules unless user exists LOOP
 while (True):
-	rule_list = get_rule_index()
+	rule_list, rule_list2 = get_rule_index()
 
 # Initial variables
 	choice = -1
@@ -93,18 +95,20 @@ while (True):
 		print('Just press "Enter" if you don\'t want to change that field.')
 		ip, action = get_ip()
 		port, protocol = get_port()
-		rule = rule_list[selected_rule][14:].split()
+		rule = rule_list2[selected_rule].split()
+		print(rule)
 		if len(ip) == 0:
-			ip == rule[5]
+			ip = rule[5]
 		if len(action) == 0:
-			action == rule[0]
+			action = rule[0]
 		if len(port) == 0:
-			port == rule[2]
+			port = rule[2]
 		if len(protocol) == 0:
-			protocol == rule[1]
+			protocol = rule[1]
 
 # Writing rule
 	newrule = '\n### tuple ### {} {} {} 0.0.0.0/0 any {} in\n'.format(action, protocol, port, ip)
+	print(newrule)
 	with open(USER_RULES, "r") as in_file:
 		buf = in_file.readlines()
 
@@ -132,10 +136,12 @@ while (True):
 
 	# editing rule
 		else:
+			print("editing rule")
 			for i in range(len(buf)):
 				if i==rule_list[selected_rule]:
-					out_file.write(buf[i])
-					break
+					print("editing rule is found")
+					buf[i] = newrule
+					print(buf[i])
 				out_file.write(buf[i])
 
 
