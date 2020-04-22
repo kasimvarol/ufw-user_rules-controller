@@ -1,15 +1,24 @@
 USER_RULES = "/etc/ufw/user.rules"
 
+
+
 # List updated rules
-def list_rules():
-	print('{0:10}{1:^10}{2:^20}{3:10}'.format("PORT", "PROTOCOL", "IP", "ACTION"))
+def get_rule_index():
+	print('{:<7}|{:^10}|{:^10}|{:^20}|{:>10}'.format("Numbers", "PORT", "PROTOCOL", "IP", "ACTION"))
 	with open(USER_RULES, "r") as in_file:
 		data = in_file.readlines()
-	for line in data:
-		if "tuple" in line:
-			rule = line[14:].split()
-			print('{0:10}{1:^10}{2:^20}{3:10}'.format(rule[2], rule[1], rule[5], rule[0]))
-	print("\n1. Port Allow\n2. IP Permissions\n3. IP-Port Permissions\n0. Exit")
+	rule_list=[]
+	k = 0
+	for i in range(len(data)):
+		if "tuple" in data[i]:
+			rule = data[i][14:].split()
+			print('{:^7}|{:^10}|{:^10}|{:^20}|{:>10}'.format(k+1,rule[2], rule[1], rule[5], rule[0]))
+			k+=1
+			rule_list.append(i)
+
+
+	print("\n1. Port Allow\n2. IP Permissions\n3. IP-Port Permissions\n4. Delete Rule\n5. Edit Rule\n0. Exit")
+	return rule_list
 
 
 ### Check the value with regex (22, 7100, 7100:7200) NEED TO BE REVISED
@@ -24,14 +33,16 @@ def get_port():
 ### Check the value with regex (10.10.10.0/24 or 10.10.10.10) NEED TO BE REVISED
 def get_ip():
 	ip = raw_input("Network address: ")
-	acts = ("allow", "deny", "reject")
-	ch=4
-	while(ch>3 or ch<1):
-		ch=int(raw_input("Which action(allow=1, deny=2, reject=3):"))
-	action=acts[ch-1]
+	ch=raw_input("Which action(allow, deny, reject): ")
 	return ip,action
 
-
+### Get selected index
+def get_index(rule_list):
+	selected_rule=0
+	while selected_rule<1 or selected_rule>len(rule_list):
+			selected_rule=int(raw_input("What is rule number: "))
+	selected_rule-=1
+	return selected_rule
 
 
 # Hints about rules
@@ -41,18 +52,19 @@ print("*"*55 + "\n")
 
 # Add rules unless user exists LOOP
 while (True):
-	list_rules()
+	rule_list = get_rule_index()
 
 # Initial variables
 	choice = -1
+	selected_rule = -1
 	newrule = ""
 	port = "any"
 	protocol = "any"
 	ip = "0.0.0.0/0"
 	action = "allow"
 
-	while choice<0 or choice>3:
-		choice=int(input("What is your choice: "))
+	while choice<0 or choice>5:
+		choice=int(raw_input("What is your choice: "))
 
 #Exit
 	if choice==0:
@@ -71,6 +83,26 @@ while (True):
 		ip, action = get_ip()
 		port, protocol = get_port()
 
+# Deleting rule
+	elif choice==4:
+		selected_rule = get_index(rule_list)
+
+# Editing rule
+	else:
+		selected_rule = get_index(rule_list)
+		print('Just press "Enter" if you don\'t want to change that field.')
+		ip, action = get_ip()
+		port, protocol = get_port()
+		rule = rule_list[selected_rule][14:].split()
+		if len(ip) == 0:
+			ip == rule[5]
+		if len(action) == 0:
+			action == rule[0]
+		if len(port) == 0:
+			port == rule[2]
+		if len(protocol) == 0:
+			protocol == rule[1]
+
 # Writing rule
 	newrule = '\n### tuple ### {} {} {} 0.0.0.0/0 any {} in\n'.format(action, protocol, port, ip)
 	with open(USER_RULES, "r") as in_file:
@@ -86,8 +118,24 @@ while (True):
 				out_file.write(buf[i])
 
 	# if it is an ip rule then add it at the top    
-		else:
+		elif choice==2 or choice==3:
 			for i in range(len(buf)):
 				if buf[i] == "### RULES ###\n":
 					buf[i] = buf[i] + newrule
 				out_file.write(buf[i])
+
+	# deleting specific line
+		elif choice==4:
+			for i in range(len(buf)):
+				if i!= rule_list[selected_rule]:
+					out_file.write(buf[i])
+
+	# editing rule
+		else:
+			for i in range(len(buf)):
+				if i==rule_list[selected_rule]:
+					out_file.write(buf[i])
+					break
+				out_file.write(buf[i])
+
+
